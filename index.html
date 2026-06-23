@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OONO Sushi – Digitale Speisekarte</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f4; color: #1a1a1a; }
+
+    .header { background: #1a1a1a; color: white; padding: 16px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .header-logo { width: 38px; height: 38px; background: #cc2200; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 10px; color: white; flex-shrink: 0; }
+    .header-title { font-size: 16px; font-weight: 600; }
+    .header-sub { font-size: 12px; color: #aaa; margin-top: 1px; }
+
+    .search-bar { padding: 12px 16px; background: #fff; border-bottom: 1px solid #e8e8e8; }
+    .search-bar input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #ddd; background: #f8f8f8; font-size: 15px; color: #1a1a1a; outline: none; }
+    .search-bar input:focus { border-color: #cc2200; background: #fff; }
+
+    .cats { display: flex; gap: 8px; padding: 12px 16px; overflow-x: auto; background: #fff; border-bottom: 1px solid #e8e8e8; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .cats::-webkit-scrollbar { display: none; }
+    .cat-btn { padding: 7px 16px; border-radius: 20px; border: 1px solid #ddd; background: transparent; font-size: 13px; cursor: pointer; white-space: nowrap; color: #666; transition: all 0.15s; }
+    .cat-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+    .count { font-size: 12px; color: #999; padding: 10px 16px 4px; }
+
+    .items { padding: 8px 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+
+    .item-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 14px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+    .item-card:hover { border-color: #bbb; }
+    .item-card.selected { border-color: #cc2200; border-width: 2px; }
+
+    .item-main { padding: 14px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .item-code { font-size: 11px; color: #aaa; font-weight: 600; letter-spacing: 0.04em; }
+    .item-name { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-top: 2px; }
+    .item-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .item-price { font-size: 15px; font-weight: 600; color: #cc2200; }
+    .chevron { font-size: 14px; color: #bbb; transition: transform 0.2s; }
+    .item-card.selected .chevron { transform: rotate(180deg); }
+    .has-img-dot { width: 6px; height: 6px; background: #cc2200; border-radius: 50%; opacity: 0.5; }
+
+    .item-tags { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
+    .tag { font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 500; }
+    .tag-vegan { background: #e8f5e0; color: #2d7a1a; }
+    .tag-veggi { background: #e8f5e0; color: #2d7a1a; }
+    .tag-spicy { background: #fdecea; color: #c0392b; }
+    .tag-fisch { background: #e8f0fd; color: #1a5cbf; }
+
+    .detail-expand { border-top: 1px solid #f0f0f0; max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+    .detail-expand.open { max-height: 600px; }
+
+    .detail-img-wrap { width: 100%; background: #f5f0e8; }
+    .detail-img-wrap svg { display: block; width: 100%; height: auto; }
+    .img-note { font-size: 10px; color: #bbb; padding: 4px 16px 6px; font-style: italic; }
+
+    .no-img { background: #f8f8f8; height: 100px; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 13px; gap: 8px; }
+
+    .detail-body { padding: 14px 16px 16px; }
+    .detail-label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; margin-top: 12px; }
+    .detail-label:first-child { margin-top: 0; }
+    .ingredient-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font-size: 12px; padding: 4px 10px; background: #f4f4f4; border: 1px solid #e8e8e8; border-radius: 12px; color: #555; }
+    .allergen { font-size: 12px; padding: 4px 10px; background: #fff8ee; color: #a0600a; border-radius: 12px; border: 1px solid #f0d8a8; display: inline-block; margin: 2px 4px 2px 0; }
+    .note-val { font-size: 13px; color: #666; }
+    .detail-price { margin-top: 14px; font-size: 20px; font-weight: 700; color: #cc2200; }
+
+    .empty { text-align: center; padding: 50px 20px; color: #bbb; font-size: 14px; }
+
+    @media (min-width: 600px) {
+      .items { max-width: 600px; margin: 0 auto; }
+      .search-bar, .cats, .count { max-width: 600px; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">OONO</div>
+  <div>
+    <div class="header-title">OONO Sushi-Grill-Bar</div>
+    <div class="header-sub">Digitale Speisekarte</div>
+  </div>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="search" placeholder="🔍  Gericht suchen oder Nummer eingeben…" oninput="render()">
+</div>
+
+<div class="cats" id="cats"></div>
+<div class="count" id="count"></div>
+<div class="items" id="items"></div>
+
+<script>
+const ALLERGENS = {A:'Gluten',B:'Krebstiere',C:'Eier',D:'Fisch',F:'Soja',G:'Milch',H:'Nüsse',K:'Sesam'};
+
+/* ── Illustrationen für 3 Beispielgerichte ── */
+const IMGS = {
+  nigiri: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200"><rect width="400" height="200" fill="#f5f0e8"/><ellipse cx="200" cy="178" rx="155" ry="18" fill="#e0d8c8" stroke="#ccc0a8" stroke-width="1.5"/><rect x="88" y="138" width="84" height="28" rx="10" fill="#fffdf5" stroke="#e8d8a8" stroke-width="1.5"/><ellipse cx="130" cy="138" rx="42" ry="13" fill="#fffdf5" stroke="#e8d8a8" stroke-width="1.5"/><ellipse cx="130" cy="126" rx="40" ry="11" fill="#ff8c5a" stroke="#d06030" stroke-width="1"/><circle cx="118" cy="125" r="2.5" fill="#fff0c0" opacity="0.9"/><circle cx="130" cy="122" r="2.5" fill="#fff0c0" opacity="0.9"/><circle cx="143" cy="125" r="2.5" fill="#fff0c0" opacity="0.9"/><rect x="228" y="138" width="84" height="28" rx="10" fill="#fffdf5" stroke="#e8d8a8" stroke-width="1.5"/><ellipse cx="270" cy="138" rx="42" ry="13" fill="#fffdf5" stroke="#e8d8a8" stroke-width="1.5"/><ellipse cx="270" cy="126" rx="40" ry="11" fill="#c03848" stroke="#902030" stroke-width="1"/><circle cx="258" cy="125" r="2.5" fill="#fff0c0" opacity="0.9"/><circle cx="270" cy="122" r="2.5" fill="#fff0c0" opacity="0.9"/><circle cx="283" cy="125" r="2.5" fill="#fff0c0" opacity="0.9"/><text x="200" y="195" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#999">Lachs &amp; Thunfisch — je 2 Stk.</text></svg>`,
+  tempura: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200"><rect width="400" height="200" fill="#f5f0e8"/><ellipse cx="200" cy="182" rx="130" ry="16" fill="#d4c9b0"/><path d="M72 130 Q200 210 328 130" fill="#e5d9c0" stroke="#c8b898" stroke-width="1.5"/><ellipse cx="200" cy="165" rx="95" ry="12" fill="#b05808" opacity="0.25"/><path d="M138 158 Q150 108 168 98 Q182 92 186 106 Q176 112 170 124 Q158 146 150 162Z" fill="#e8904a" stroke="#c06828" stroke-width="1.5"/><path d="M138 158 Q150 108 168 98 Q182 92 186 106 Q176 112 170 124 Q158 146 150 162Z" fill="#e0a860" opacity="0.45"/><path d="M195 152 Q207 102 225 93 Q240 87 244 102 Q234 107 228 118 Q216 140 208 156Z" fill="#e8904a" stroke="#c06828" stroke-width="1.5"/><path d="M195 152 Q207 102 225 93 Q240 87 244 102 Q234 107 228 118 Q216 140 208 156Z" fill="#e0a860" opacity="0.45"/><path d="M252 160 Q260 112 276 105 Q289 100 292 114 Q283 117 278 128 Q268 148 260 165Z" fill="#e8904a" stroke="#c06828" stroke-width="1.5"/><path d="M252 160 Q260 112 276 105 Q289 100 292 114 Q283 117 278 128 Q268 148 260 165Z" fill="#e0a860" opacity="0.45"/><path d="M160 170 Q172 160 184 165 Q196 170 208 160 Q220 150 234 163" fill="none" stroke="#4a8a28" stroke-width="2.5" stroke-linecap="round"/><text x="200" y="196" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#999">Garnelen Tempura — 5 Stk.</text></svg>`,
+  suppe: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200"><rect width="400" height="200" fill="#f5f0e8"/><ellipse cx="200" cy="175" rx="138" ry="20" fill="#c8b898"/><path d="M64 110 Q200 210 336 110" fill="#d8c8a8" stroke="#b8a880" stroke-width="1.5"/><ellipse cx="200" cy="112" rx="132" ry="20" fill="#b84018"/><path d="M68 112 Q200 148 332 112 L332 120 Q200 158 68 120Z" fill="#982e10"/><path d="M148 114 Q158 126 170 118 Q180 110 192 122" fill="none" stroke="#f0c840" stroke-width="3" stroke-linecap="round"/><path d="M210 111 Q224 123 238 115" fill="none" stroke="#f0c840" stroke-width="3" stroke-linecap="round"/><line x1="178" y1="108" x2="175" y2="96" stroke="#3a8020" stroke-width="2.5"/><line x1="222" y1="110" x2="220" y2="98" stroke="#3a8020" stroke-width="2.5"/><ellipse cx="200" cy="109" rx="9" ry="5" fill="#f07020" transform="rotate(-12 200 109)"/><path d="M162 90 Q168 74 162 58" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" opacity="0.55"/><path d="M200 85 Q206 69 200 53" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" opacity="0.55"/><path d="M238 90 Q244 74 238 58" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" opacity="0.55"/><text x="200" y="194" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#999">Süß-Sauer Suppe</text></svg>`
+};
+
+/* ── Speisekarte ── */
+const menu = [
+  {code:'F100',name:'Süß-Sauer Suppe',cat:'Starters',price:'5,50',ingredients:['Hähnchenbrustfilet','Tomate','Karotte','Eier','Essig','Sojasoße'],allergens:['A','F'],tags:[],img:'suppe'},
+  {code:'F101',name:'Miso Suppe',cat:'Starters',price:'5,50',ingredients:['Tofu','Seetang','Frühlingszwiebel'],allergens:['F'],tags:['veggi']},
+  {code:'F102',name:'Edamame',cat:'Starters',price:'6,50',ingredients:['Gedämpfte Sojabohne','Meersalz'],allergens:['F'],tags:['vegan']},
+  {code:'F103',name:'Spicy Knobi Edamame',cat:'Starters',price:'6,90',ingredients:['Sojabohnen','Chili','Knoblauch','Scharfe Sauce'],allergens:['A','F','K'],tags:['spicy','vegan']},
+  {code:'F104',name:'Wakame Salat',cat:'Starters',price:'5,50',ingredients:['Japanischer Algensalat'],allergens:['K'],tags:['vegan']},
+  {code:'F105',name:'Rockin Garnelen Tempura',cat:'Starters',price:'8,90',ingredients:['Garnelen','Tempura-Mantel','Spezialsoße'],allergens:['A','B'],tags:['fisch'],img:'tempura',note:'5 Stk.'},
+  {code:'F106',name:'Chicken Gyoza',cat:'Starters',price:'6,90',ingredients:['Hühnerfleisch','Gemüse','Sesam'],allergens:['A','K'],tags:[],note:'6 Stk.'},
+  {code:'F107',name:'Garnelen Gyoza',cat:'Starters',price:'7,50',ingredients:['Garnelen','Gemüse','Sesam'],allergens:['A','B','K'],tags:['fisch'],note:'6 Stk.'},
+  {code:'F108',name:'Vegan Gyoza',cat:'Starters',price:'6,90',ingredients:['Gemüse','Sesam'],allergens:['A','K'],tags:['vegan'],note:'6 Stk.'},
+  {code:'F109',name:'Chicken Tempura',cat:'Starters',price:'6,90',ingredients:['Hühnerfleisch','Tempura-Mantel','Spezialsoße'],allergens:['A','K'],tags:[]},
+  {code:'F110',name:'Spicy Chicken Tempura',cat:'Starters',price:'6,90',ingredients:['Hühnerfleisch','Tempura-Mantel','Chilipulver','Spezialsoße'],allergens:['A','K'],tags:['spicy']},
+  {code:'F111',name:'Minifrühlingsrolle',cat:'Starters',price:'5,50',ingredients:['Frühlingsrollen','Gemüsefüllung'],allergens:['A'],tags:['vegan'],note:'8 Stk.'},
+  {code:'F117',name:'Yakitori',cat:'Starters',price:'4,90',ingredients:['Hähnchenspieße','Teriyakisoße'],allergens:['A','F','K'],tags:[],note:'3 Spieße'},
+  {code:'F118',name:'Scharfe Maniok Kräcker',cat:'Starters',price:'3,90',ingredients:['Cassave Crocker'],allergens:['A'],tags:['spicy','vegan']},
+  {code:'F119',name:'Krautsalat',cat:'Starters',price:'3,90',ingredients:['Spitzkohl','Zwiebeln','Japanmayo'],allergens:['A','C','G','K'],tags:['veggi']},
+  {code:'H1',name:'Shake (Lachs) Nigiri',cat:'Nigiri',price:'6,50',ingredients:['Lachs','Sushireis'],allergens:['D'],tags:['fisch'],note:'je 2 Stk.',img:'nigiri'},
+  {code:'H2',name:'Maguro (Thunfisch) Nigiri',cat:'Nigiri',price:'7,50',ingredients:['Thunfisch','Sushireis'],allergens:['D'],tags:['fisch'],note:'je 2 Stk.'},
+  {code:'H3',name:'Ebi Nigiri',cat:'Nigiri',price:'5,90',ingredients:['Eingelegte Garnelen','Sushireis'],allergens:['B'],tags:['fisch'],note:'je 2 Stk.'},
+  {code:'H4',name:'Unagi Nigiri',cat:'Nigiri',price:'7,50',ingredients:['Gegrillter Aal','Reis'],allergens:['D','F'],tags:['fisch'],note:'je 2 Stk.'},
+  {code:'H5',name:'Avocado Nigiri',cat:'Nigiri',price:'5,50',ingredients:['Avocado','Sushireis'],allergens:['F'],tags:['vegan'],note:'je 2 Stk.'},
+  {code:'H6',name:'Inari Nigiri',cat:'Nigiri',price:'5,50',ingredients:['Tofutasche','Reis'],allergens:['F'],tags:['vegan'],note:'je 2 Stk.'},
+  {code:'H7',name:'Flamed Lachs mit Ikura Nigiri',cat:'Nigiri',price:'6,90',ingredients:['Flambierter Lachs','Fischkaviar','Sushireis'],allergens:['A','C','D','G'],tags:['fisch'],note:'je 2 Stk.'},
+  {code:'H8',name:'Flamed Lachs mit Spargel Nigiri',cat:'Nigiri',price:'7,50',ingredients:['Flambierter Lachs','Spargel','Sushireis'],allergens:['A','C','D','G'],tags:['fisch'],note:'je 2 Stk.'},
+  {code:'H11',name:'Tamago Nigiri',cat:'Nigiri',price:'5,50',ingredients:['Japanische Eieromlette','Sushireis'],allergens:['A','C'],tags:['veggi'],note:'je 2 Stk.'},
+  {code:'H12',name:'Spargel Nigiri',cat:'Nigiri',price:'5,50',ingredients:['Spargel','Sushireis'],allergens:['F'],tags:['vegan'],note:'je 2 Stk.'},
+  {code:'H13',name:'Flamed Beef Nigiri',cat:'Nigiri',price:'6,90',ingredients:['Flambiertes Rindfleisch','Sushireis'],allergens:['A','F'],tags:[],note:'je 2 Stk.'},
+  {code:'M11',name:'Sake Maki',cat:'Maki',price:'6,90',ingredients:['Lachs','Sushireis','Noriblatt'],allergens:['D'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'M12',name:'Tekka Maki',cat:'Maki',price:'7,90',ingredients:['Thunfisch','Sushireis','Noriblatt'],allergens:['D'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'M13',name:'Wakame Maki',cat:'Maki',price:'5,90',ingredients:['Grüner Algensalat','Sushireis','Noriblatt'],allergens:['K'],tags:['vegan'],note:'je 8 Stk.'},
+  {code:'M14',name:'Spargel Maki',cat:'Maki',price:'5,90',ingredients:['Spargel','Sushireis','Noriblatt'],allergens:[],tags:['vegan'],note:'je 8 Stk.'},
+  {code:'M15',name:'Avocado Maki',cat:'Maki',price:'5,90',ingredients:['Avocado','Sushireis','Noriblatt'],allergens:[],tags:['vegan'],note:'je 8 Stk.'},
+  {code:'M16',name:'Kappa Maki',cat:'Maki',price:'5,50',ingredients:['Gurken','Sushireis','Noriblatt'],allergens:[],tags:['vegan'],note:'je 8 Stk.'},
+  {code:'M17',name:'Mango Maki',cat:'Maki',price:'5,90',ingredients:['Mango','Sushireis','Noriblatt'],allergens:[],tags:['vegan'],note:'je 8 Stk.'},
+  {code:'M21',name:'Lachscreme Maki',cat:'Maki',price:'6,50',ingredients:['Gegarter Lachs','Sushimayo','Sushireis','Noriblatt'],allergens:['A','C','G','D'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'D21',name:'California Roll',cat:'Inside-Out',price:'10,50',ingredients:['Surimi','Gurke','Avocado','Sesam','Mayo'],allergens:['A','B','C','G','K'],tags:[],note:'je 8 Stk.'},
+  {code:'D22',name:'Spicy Tuna Roll',cat:'Inside-Out',price:'11,90',ingredients:['Spicy Tuna','Gurke','Schnittlauch','Tempura','Sesam'],allergens:['A','D','K'],tags:['spicy','fisch'],note:'je 8 Stk.'},
+  {code:'D23',name:'Canadian Roll',cat:'Inside-Out',price:'11,50',ingredients:['Lachs','Avocado','Cream Cheese','Fischkaviar','Sesam'],allergens:['D','K'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'D24',name:'Garnelen Tempura Roll',cat:'Inside-Out',price:'11,90',ingredients:['Garnelen','Avocado','Cream Cheese','Sesam'],allergens:['A','B','K'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'D25',name:'Alaska Roll',cat:'Inside-Out',price:'10,90',ingredients:['Lachs','Gurke','Sesam'],allergens:['D','K'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'D28',name:'Veggie Roll',cat:'Inside-Out',price:'9,90',ingredients:['Gurke','Avocado','Cream Cheese','Sesam'],allergens:['K'],tags:['veggi'],note:'je 8 Stk.'},
+  {code:'D30',name:'Vegan Roll',cat:'Inside-Out',price:'9,90',ingredients:['Karotten','Avocado','Gurken','Sesam'],allergens:['K'],tags:['vegan'],note:'je 8 Stk.'},
+  {code:'T51',name:'Tempura Surimi Roll',cat:'Crunchy',price:'13,90',ingredients:['Surimi','Avocado','Gurke','Cream Cheese','Mayo','Crunchy Tempura'],allergens:['A','B','C','G','K'],tags:[],note:'je 8 Stk.'},
+  {code:'T52',name:'Tempura Lachs Roll',cat:'Crunchy',price:'15,50',ingredients:['Lachs','Avocado','Mango','Gurke','Cream Cheese'],allergens:['A','D','K'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'T54',name:'Tempura Chicken Roll',cat:'Crunchy',price:'14,50',ingredients:['Hähnchen','Avocado','Gurke','Cream Cheese','Nüsse'],allergens:['A','H','K'],tags:[],note:'je 8 Stk.'},
+  {code:'T55',name:'Tempura Veggie',cat:'Crunchy',price:'13,90',ingredients:['Avocado','Kürbis','Gurke','Spargel','Tofutasche'],allergens:['A','F','K'],tags:['vegan'],note:'je 8 Stk.'},
+  {code:'A31',name:'Phönix Roll',cat:'Signature',price:'14,90',ingredients:['Gegarter Lachs','Gurke','Flamed Tuna','Schnittlauch','Teriyaki Sauce','Sesam'],allergens:['A','C','D','G','K'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'A32',name:'Crazy Salmon Roll',cat:'Signature',price:'15,90',ingredients:['Lachstatar','Avocado','Flamed Lachs','Spicy Mayo','Ikura','Sesam','Schnittlauch'],allergens:['A','C','D','G','K'],tags:['spicy','fisch'],note:'je 8 Stk.'},
+  {code:'A33',name:'Surf & Turf Roll',cat:'Signature',price:'14,90',ingredients:['Tempura Garnelen','Avocado','Gurke','Rindfleisch','Schnittlauch','Teriyaki Sauce','Sesam'],allergens:['A','B','F','K'],tags:[],note:'je 8 Stk.'},
+  {code:'A34',name:'Sweet Sour Duck Roll',cat:'Signature',price:'13,90',ingredients:['Crispy Ente','Gurke','Schnittlauch','Spicy Mayo','Teriyaki Sauce','Sesam'],allergens:['A','C','F','G','K'],tags:[],note:'je 8 Stk.'},
+  {code:'A50',name:'Oono Special Roll I',cat:'Signature',price:'16,90',ingredients:['Unagi','Tempura Garnelen','Avocado','Flambierter Lachs','Fischkaviar','Spicy Mayo','Sesam'],allergens:['A','B','C','D','G','K'],tags:['fisch'],note:'je 8 Stk.'},
+  {code:'S60',name:'Lachs Sashimi',cat:'Sashimi',price:'15,90',ingredients:['Lachs'],allergens:['D'],tags:['fisch'],note:'je 8 Scheiben'},
+  {code:'S61',name:'Thunfisch Sashimi',cat:'Sashimi',price:'17,90',ingredients:['Thunfisch'],allergens:['D'],tags:['fisch'],note:'je 8 Scheiben'},
+  {code:'S62',name:'Lachs & Thunfisch Sashimi',cat:'Sashimi',price:'16,90',ingredients:['Lachs','Thunfisch'],allergens:['D'],tags:['fisch'],note:'je 8 Scheiben'},
+  {code:'E71',name:'Lachs Tataki',cat:'Tataki',price:'15,90',ingredients:['Lachs','Mango','Rote Zwiebeln','Wakame','Ponzu Sauce'],allergens:['A','D','F','K'],tags:['fisch']},
+  {code:'E73',name:'Tuna Tataki',cat:'Tataki',price:'17,90',ingredients:['Thunfisch','Mango','Rote Zwiebeln','Wakame','Ponzu Sauce'],allergens:['A','D','F','K'],tags:['fisch']},
+  {code:'E75',name:'Avocado Tataki',cat:'Tataki',price:'12,90',ingredients:['Avocado','Mango','Rote Zwiebeln','Wakame','Ponzu Sauce'],allergens:['A','F','K'],tags:['vegan']},
+  {code:'B201',name:'Tempura Chicken mit Reis',cat:'Hauptgerichte',price:'14,90',ingredients:['Gebackenes Hähnchen','Gemüse','Sesam','Reis'],allergens:['A','F','K'],tags:[]},
+  {code:'B202',name:'Spicy Fire Chicken mit Reis',cat:'Hauptgerichte',price:'14,90',ingredients:['Gebratenes Hähnchenfleisch','Gemüse','Sesam','Reis'],allergens:['A','F','K'],tags:['spicy']},
+  {code:'B203',name:'Teriyaki Unagi mit Reis',cat:'Hauptgerichte',price:'18,90',ingredients:['Gegrillter Aal','Reis','Gemüse','Sesam'],allergens:['A','D','F'],tags:['fisch']},
+  {code:'B207',name:'Chicken Udon Nudeln',cat:'Hauptgerichte',price:'14,90',ingredients:['Weizennudeln','Hähnchen','Gemüse','Sesam'],allergens:['A','F','K'],tags:[]},
+  {code:'B210',name:'Veggie Udon Nudeln',cat:'Hauptgerichte',price:'13,90',ingredients:['Weizennudeln','Gemüse','Sesam'],allergens:['A','F','K'],tags:['vegan']},
+  {code:'B211',name:'Gebratener Reis mit Gemüse',cat:'Hauptgerichte',price:'12,90',ingredients:['Gebratener Reis','Gemüse','Sesam'],allergens:['A','F','K'],tags:['vegan']},
+  {code:'P1',name:'Veggie Poke Bowl',cat:'Poke Bowls',price:'13,90',ingredients:['Sushireis','Gurke','Avocado','Edamame','Mais','Karotten','Tofutasche','Sesam'],allergens:['F','K'],tags:['vegan']},
+  {code:'P4',name:'Alaska Poke Bowl',cat:'Poke Bowls',price:'14,90',ingredients:['Sushireis','Lachs','Avocado','Gurke','Mais','Edamame','Karotten','Sesam'],allergens:['D','F','K'],tags:['fisch']},
+  {code:'P5',name:'Salmon Poke Bowl',cat:'Poke Bowls',price:'14,50',ingredients:['Sushireis','Gegarter Lachs','Avocado','Gurke','Mais','Edamame','Karotten','Sesam'],allergens:['A','C','D','F','G','K'],tags:['fisch']},
+  {code:'P6',name:'Salmon Tobiko Poke Bowl',cat:'Poke Bowls',price:'15,50',ingredients:['Sushireis','Lachs','Avocado','Gurke','Mais','Edamame','Tobiko','Sesam'],allergens:['D','F','K'],tags:['fisch']},
+];
+
+const cats = ['Alle', ...[...new Set(menu.map(i => i.cat))]];
+let activeCat = 'Alle', selectedCode = null;
+
+function init() {
+  const el = document.getElementById('cats');
+  cats.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (c === activeCat ? ' active' : '');
+    btn.textContent = c;
+    btn.onclick = () => { activeCat = c; selectedCode = null; render(); };
+    el.appendChild(btn);
+  });
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = menu.filter(i => {
+    const mc = activeCat === 'Alle' || i.cat === activeCat;
+    const mq = !q || i.code.toLowerCase().includes(q) || i.name.toLowerCase().includes(q) || i.ingredients.join(' ').toLowerCase().includes(q);
+    return mc && mq;
+  });
+
+  document.querySelectorAll('.cat-btn').forEach((b, i) => b.classList.toggle('active', cats[i] === activeCat));
+  document.getElementById('count').textContent = filtered.length + ' Gerichte';
+
+  const el = document.getElementById('items');
+  el.innerHTML = '';
+  if (!filtered.length) { el.innerHTML = '<div class="empty">Keine Gerichte gefunden 🍱</div>'; return; }
+
+  filtered.forEach(item => {
+    const isSel = item.code === selectedCode;
+    const allergenNames = item.allergens.map(a => ALLERGENS[a] || a);
+    const tagHTML = item.tags.map(t =>
+      `<span class="tag tag-${t}">${t==='veggi'?'🌿 Vegetarisch':t==='vegan'?'🌱 Vegan':t==='spicy'?'🌶 Scharf':'🐟 Fisch'}</span>`
+    ).join('');
+
+    let imgHTML = '';
+    if (item.img && IMGS[item.img]) {
+      imgHTML = `<div class="detail-img-wrap">${IMGS[item.img]}</div>
+                 <div class="img-note">Illustration — echte Fotos werden vom Restaurant geliefert</div>`;
+    } else {
+      imgHTML = `<div class="no-img">📷 Foto folgt</div>`;
+    }
+
+    const detailHTML = imgHTML + `
+      <div class="detail-body">
+        <div class="detail-label">Zutaten</div>
+        <div class="ingredient-chips">${item.ingredients.map(i => `<span class="chip">${i}</span>`).join('')}</div>
+        ${allergenNames.length ? `<div class="detail-label">Allergene</div><div>${allergenNames.map(a => `<span class="allergen">${a}</span>`).join('')}</div>` : ''}
+        ${item.note ? `<div class="detail-label">Portionsgröße</div><div class="note-val">${item.note}</div>` : ''}
+        <div class="detail-price">€ ${item.price}</div>
+      </div>`;
+
+    const card = document.createElement('div');
+    card.className = 'item-card' + (isSel ? ' selected' : '');
+    card.innerHTML = `
+      <div class="item-main">
+        <div>
+          <div class="item-code">${item.code}</div>
+          <div class="item-name">${item.name}</div>
+        </div>
+        <div class="item-right">
+          ${item.img ? '<div class="has-img-dot"></div>' : ''}
+          <span class="item-price">€ ${item.price}</span>
+          <span class="chevron">${isSel ? '▲' : '▼'}</span>
+        </div>
+      </div>
+      ${tagHTML ? `<div class="item-tags">${tagHTML}</div>` : ''}
+      <div class="detail-expand ${isSel ? 'open' : ''}">${detailHTML}</div>`;
+
+    card.querySelector('.item-main').addEventListener('click', () => {
+      selectedCode = isSel ? null : item.code;
+      render();
+    });
+    el.appendChild(card);
+  });
+}
+
+init();
+render();
+</script>
+</body>
+</html>
